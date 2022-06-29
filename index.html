@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Aplicación para presentaciones HTML con contenido dinámico.">
+    <title>Slides App</title>
+    <link rel="stylesheet" href="./assets/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2/css/reset.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2/css/reveal.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+</head>
+
+<body>
+
+    <div id="app" class="reveal">
+
+        <!-- Menu -->
+        <nav class="navbar fixed-bottom navbar-light options-menu mb-2">
+            <div class="container-fluid justify-content-center flex-column">
+                <div class="d-flex justify-content-between container-menu animate__animated animate__fadeInUp">
+                    <button type="button" class="navbar-brand option-menu" href="#" @click="openContent()"
+                        data-bs-toggle="tooltip" data-bs-placement="top" title="Contenido"><i
+                            class="bi bi-list-ul"></i></button>
+                    <button v-show="config.overview" type="button" class="navbar-brand option-menu" href="#"
+                        @click="openOverview()" data-bs-toggle="tooltip" data-bs-placement="top"
+                        title="Vista General"><i class="bi bi-app-indicator"></i></button>
+                    <button type="button" v-show="!isFullScreen" class="navbar-brand option-menu" @click="fullScreen()"
+                        data-bs-toggle="tooltip" data-bs-placement="top" title="Presentar"><i
+                            class="bi bi-play-circle"></i></button>
+                    <button type="button" v-show="isFullScreen" class="navbar-brand option-menu"
+                        @click="exitFullScreen()" data-bs-toggle="tooltip" data-bs-placement="top"
+                        title="Terminar Presentación"><i class="bi bi-stop-circle"></i></button>
+                    <button type="button" class="navbar-brand option-menu" @click="openCustom()"
+                        data-bs-toggle="tooltip" data-bs-placement="top" title="Personalizar"><i
+                            class="bi bi-droplet"></i></button>
+                    <button type="button" class="navbar-brand option-menu" href="#" @click="openConfig()"
+                        data-bs-toggle="tooltip" data-bs-placement="top" title="Configuración"><i
+                            class="bi bi-gear"></i></button>
+                </div>
+            </div>
+
+
+        </nav>
+        <!-- Menu -->
+
+        <div aria-live="polite" aria-atomic="true" v-show="isCostumizing || isConfig">
+            <div class="toast-container position-absolute top-0 start-0 p-3" style="z-index: 10000;">
+                <div :style="{'background': custom.background}"
+                    class="toast align-items-center text-white border-0 animate__animated animate__bounceIn"
+                    role="alert" aria-live="assertive" aria-atomic="true" id="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-check-circle-fill"></i> Cambios guardados correctamente.
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                            aria-label="Close"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="offcanvas offcanvas-start" tabindex="-1" id="content">
+            <div class="offcanvas-header">
+                <h5 id="offcanvasRightLabel">Contenido</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                    aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <div class="text-center mb-4">
+                    <img src="https://img.icons8.com/fluency/96/000000/bursts.png" />
+                </div>
+
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item" v-for="({title, subslides}, indexM) in getMenu" style="border: none;"
+                        :data-title="title">
+                        <a :data-title="title" :href="'#/'+ (indexM )" style="color: #000000"
+                            data-bs-dismiss="offcanvas"><small :data-title="title"><b :data-title="title">{{(indexM +
+                                    1)}} . {{title}}</b></small></a>
+                        <ul>
+                            <li v-for="({title}, indexS) in subslides" style="list-style: none"><a
+                                    style="color: #000000" :href="'#/'+ (indexM) + '/' + (indexS)"
+                                    data-bs-dismiss="offcanvas"><small>{{(indexM + 1)+ '.'+(indexS + 1)}} .
+                                        {{title}}</small></a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <!-- Content -->
+
+        <!-- Configuration -->
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="config">
+            <div class="offcanvas-header">
+                <h5 id="offcanvasRightLabel">Configuración</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                    aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <div class="text-center mb-4">
+                    <img class="animate__animated animate__fadeIn"
+                        src="https://img.icons8.com/fluency/96/000000/vertical-settings-mixer.png" />
+                </div>
+
+                <ul class="list-group">
+                    <li class="list-group-item d-flex justify-content-between align-items-center" style="border: none;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <i class="bi bi-dpad text-muted"
+                                style="font-size: 25px; margin-right: 10px; cursor: pointer;"></i>
+                            <small class="text-muted">Mostrar Controles <br> <small style="font-size: 10px;">Activa los
+                                    controles de paginación de la presentación</small></small>
+
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" v-model="config.showControls"
+                                @change="configPresentation('showControls', config.showControls)">
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center" style="border: none;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <i class="bi bi-play-circle text-muted"
+                                style="font-size: 25px; margin-right: 10px; cursor: pointer;"></i>
+                            <small class="text-muted">Reproducción Automática <br> <small
+                                    style="font-size: 10px;">Activa la
+                                    reproducción en loop de la diapositivas en un tiempo determinado (5 Segundos)
+                                </small> </small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" v-model="config.loop"
+                                @change="configPresentation('loop', config.loop)">
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center" style="border: none;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <i class="bi bi-sort-numeric-up text-muted"
+                                style="font-size: 25px; margin-right: 10px; cursor: pointer;"></i>
+                            <small class="text-muted">Mostrar número de diapositiva <br> <small
+                                    style="font-size: 10px;">Activa la numeración de las diapositivas</small> </small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" v-model="config.slideNumber"
+                                @change="configPresentation('slideNumber', config.slideNumber)">
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center" style="border: none;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <i class="bi bi-sliders2 text-muted"
+                                style="font-size: 25px; margin-right: 10px; cursor: pointer;"></i>
+                            <small class="text-muted">Mostrar barra de progreso <br> <small
+                                    style="font-size: 10px;">Activa
+                                    la barra de progreso de la presentación en curso</small></small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" v-model="config.progressbar"
+                                @change="configPresentation('progressbar', config.progressbar)">
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center" style="border: none;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <i class="bi bi-keyboard text-muted" style="font-size: 25px; margin-right: 10px;"></i>
+                            <small class="text-muted">Habilitar uso del teclado <br> <small
+                                    style="font-size: 10px;">Activa
+                                    el uso del teclado para navegar entre diapositivas</small></small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" v-model="config.keyboard"
+                                @change="configPresentation('keyboard', config.keyboard)">
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center" style="border: none;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <i class="bi bi-mouse text-muted" style="font-size: 25px; margin-right: 10px;"></i>
+                            <small class="text-muted">Habilitar uso del mouse <br> <small
+                                    style="font-size: 10px;">Activa el
+                                    uso del mouse para navegar entre diapositivas</small> </small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" v-model="config.mouse"
+                                @change="configPresentation('mouse', config.mouse)">
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center" style="border: none;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <i class="bi bi-intersect text-muted" style="font-size: 25px; margin-right: 10px;"></i>
+                            <small class="text-muted"> Habilitar vista general <br> <small
+                                    style="font-size: 10px;">Habilita la vista general de la diapositiva</small>
+                            </small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" v-model="config.overview"
+                                @change="configPresentation('overview', config.overview)">
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <!-- Configuration -->
+
+
+        <!-- Custom -->
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="custom">
+            <div class="offcanvas-header">
+                <h5 id="offcanvasRightLabel">Personalizar</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                    aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <div class="text-center mb-4">
+                    <img src="https://img.icons8.com/fluency/96/000000/whiteboard.png" />
+                </div>
+
+                <div class="accordion accordion-flush" id="custom-slides">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="custom-brackground">
+                            <button class="accordion-button collapsed text-muted" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#collapseBackground" aria-expanded="false"
+                                aria-controls="collapseBackground">
+                                <i class="bi bi-palette text-muted" style="font-size: 25px; margin-right: 10px;"></i>
+                                <small> Background <br> <small style="font-size: 10px;">Selecciona el color de fondo de
+                                        la presentación</small> </small>
+                            </button>
+                        </h2>
+                        <div id="collapseBackground" class="accordion-collapse collapse"
+                            aria-labelledby="custom-brackground" data-bs-parent="#custom-slides">
+                            <div class="accordion-body">
+
+                                <label v-if="drawColorSelected">
+                                    <input type="radio" name="color" v-model="custom.background">
+                                    <div class="layer"></div>
+                                    <div class="color"><span :style="{'background': drawColorSelected}"
+                                            class="active"></span></div>
+                                </label>
+
+                                <label class="red">
+                                    <input type="radio" name="color" :value="palette.red" v-model="custom.background"
+                                        @change="customPresentation('background', custom.background)">
+                                    <div class="layer"></div>
+                                    <div class="color"><span
+                                            :class="palette.red.toUpperCase() == custom.background.toUpperCase() && 'active'"></span>
+                                    </div>
+                                </label>
+
+                                <label class="orange">
+                                    <input type="radio" name="color" :value="palette.orange" v-model="custom.background"
+                                        @change="customPresentation('background', custom.background)">
+                                    <div class="layer"></div>
+                                    <div class="color"><span
+                                            :class="palette.orange.toUpperCase() == custom.background.toUpperCase() && 'active'"></span>
+                                    </div>
+                                </label>
+
+                                <label class="yellow">
+                                    <input type="radio" name="color" :value="palette.yellow" v-model="custom.background"
+                                        @change="customPresentation('background', custom.background)">
+                                    <div class="layer"></div>
+                                    <div class="color"><span
+                                            :class="palette.yellow.toUpperCase() == custom.background.toUpperCase() && 'active'"></span>
+                                    </div>
+                                </label>
+
+                                <label class="grass">
+                                    <input type="radio" name="color" :value="palette.green" v-model="custom.background"
+                                        @change="customPresentation('background', custom.background)">
+                                    <div class="layer"></div>
+                                    <div class="color"><span
+                                            :class="palette.green.toUpperCase() == custom.background.toUpperCase()  && 'active'"></span>
+                                    </div>
+                                </label>
+
+                                <label class="mint">
+                                    <input type="radio" name="color" :value="palette.teal" v-model="custom.background"
+                                        @change="customPresentation('background', custom.background)">
+                                    <div class="layer"></div>
+                                    <div class="color"><span
+                                            :class="palette.teal.toUpperCase() == custom.background.toUpperCase() && 'active'"></span>
+                                    </div>
+                                </label>
+
+                                <label class="blue">
+                                    <input type="radio" name="color" :value="palette.blue" v-model="custom.background"
+                                        @change="customPresentation('background', custom.background)">
+                                    <div class="layer"></div>
+                                    <div class="color"><span
+                                            :class="palette.blue.toUpperCase() == custom.background.toUpperCase() && 'active'"></span>
+                                    </div>
+                                </label>
+
+                                <label class="lavender">
+                                    <input type="radio" name="color" :value="palette.purple" v-model="custom.background"
+                                        @change="customPresentation('background', custom.background)">
+                                    <div class="layer"></div>
+                                    <div class="color"><span
+                                            :class="palette.purple.toUpperCase() == custom.background.toUpperCase() && 'active'"></span>
+                                    </div>
+                                </label>
+
+                                <label class="add-color" style="position: relative;">
+                                    <input class="form-control btn-color" type="color" v-model="custom.background"
+                                        @input="customPresentation('background', custom.background)">
+                                    <div class="layer"></div>
+                                    <div class="color"><span></span></div>
+                                </label>
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="custom-transtitions">
+                            <button class="accordion-button collapsed text-muted" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#collapseTransitions" aria-expanded="false"
+                                aria-controls="collapseTransitions">
+                                <i class="bi bi-magic text-muted" style="font-size: 25px; margin-right: 10px;"></i>
+                                <small> Transiciones <br> <small style="font-size: 10px;">Selecciona la transición de la
+                                        presentación</small> </small>
+                            </button>
+                        </h2>
+                        <div id="collapseTransitions" class="accordion-collapse collapse"
+                            aria-labelledby="custom-transtitions" data-bs-parent="#custom-slides">
+                            <div class="accordion-body">
+                                <div class="list-group">
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" id="nothing"
+                                            name="custom-transitions" v-model="custom.transition" value="none"
+                                            @change="customPresentation('transition', custom.transition)">
+                                        <label class="form-check-label" for="nothing">
+                                            Ninguna
+                                        </label>
+                                    </label>
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" id="fade" name="custom-transitions"
+                                            v-model="custom.transition" value="fade"
+                                            @change="customPresentation('transition', custom.transition)">
+                                        <label class="form-check-label" for="fade">
+                                            Fade
+                                        </label>
+                                    </label>
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" id="slide"
+                                            name="custom-transitions" v-model="custom.transition" value="slide"
+                                            @change="customPresentation('transition', custom.transition)">
+                                        <label class="form-check-label" for="slide">
+                                            Slide
+                                        </label>
+                                    </label>
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" id="convex"
+                                            name="custom-transitions" v-model="custom.transition" value="convex"
+                                            @change="customPresentation('transition', custom.transition)">
+                                        <label class="form-check-label" for="convex">
+                                            Convex
+                                        </label>
+                                    </label>
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" id="concave"
+                                            name="custom-transitions" v-model="custom.transition" value="concave"
+                                            @change="customPresentation('transition', custom.transition)">
+                                        <label class="form-check-label" for="concave">
+                                            Concave
+                                        </label>
+                                    </label>
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" id="zoom" name="custom-transitions"
+                                            v-model="custom.transition" value="zoom"
+                                            @change="customPresentation('transition', custom.transition)">
+                                        <label class="form-check-label" for="zoom">
+                                            Zoom
+                                        </label>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="custom-transitionVelocity">
+                            <button class="accordion-button collapsed text-muted" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#collapsetransitionVelocity"
+                                aria-expanded="false" aria-controls="collapsetransitionVelocity">
+                                <i class="bi bi-medium text-muted" style="font-size: 25px; margin-right: 10px;"></i>
+                                <small> Velocidad de transición <br> <small style="font-size: 10px;">Selecciona la
+                                        velocidad de la transición</small> </small>
+                            </button>
+                        </h2>
+                        <div id="collapsetransitionVelocity" class="accordion-collapse collapse"
+                            aria-labelledby="custom-transitionVelocity" data-bs-parent="#custom-slides">
+                            <div class="accordion-body">
+                                <div class="list-group">
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" name="custom-velocity"
+                                            id="default-velocity" v-model="custom.transitionSpeed" value="default"
+                                            @change="customPresentation('transitionSpeed', custom.transitionSpeed)">
+                                        <label class="form-check-label" for="default-velocity">
+                                            Default
+                                        </label>
+                                    </label>
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" name="custom-velocity" id="fast"
+                                            v-model="custom.transitionSpeed" value="fast"
+                                            @change="customPresentation('transitionSpeed', custom.transitionSpeed)">
+                                        <label class="form-check-label" for="fast">
+                                            Rápido
+                                        </label>
+                                    </label>
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" name="custom-velocity" id="slow"
+                                            v-model="custom.transitionSpeed" value="slow"
+                                            @change="customPresentation('transitionSpeed', custom.transitionSpeed)">
+                                        <label class="form-check-label" for="slow">
+                                            Lento
+                                        </label>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="custom-direction">
+                            <button class="accordion-button collapsed text-muted" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#collapseDirection" aria-expanded="false"
+                                aria-controls="collapseDirection">
+                                <i class="bi bi-signpost text-muted" style="font-size: 25px; margin-right: 10px;"></i>
+                                <small> Dirección <br> <small style="font-size: 10px;">Dirección de la
+                                        presentación</small> </small>
+                            </button>
+                        </h2>
+                        <div id="collapseDirection" class="accordion-collapse collapse"
+                            aria-labelledby="custom-direction" data-bs-parent="#custom-slides">
+                            <div class="accordion-body">
+                                <div class="list-group">
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" name="custom-direction" id="ltr"
+                                            v-model="custom.slideDirection" value="false"
+                                            @change="customPresentation('slideDirection', custom.slideDirection)">
+                                        <label class="form-check-label" for="ltr">
+                                            Izquierda -> Derecha
+                                        </label>
+                                    </label>
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" name="custom-direction" id="rtl"
+                                            v-model="custom.slideDirection" value="true"
+                                            @change="customPresentation('slideDirection', custom.slideDirection)">
+                                        <label class="form-check-label" for="rtl">
+                                            Derecha -> Izquierda
+                                        </label>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="custom-direction">
+                            <button class="accordion-button collapsed text-muted" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#collapseControls" aria-expanded="false"
+                                aria-controls="collapseControls">
+                                <i class="bi bi-dpad text-muted" style="font-size: 25px; margin-right: 10px;"></i>
+                                <small> Controles <br> <small style="font-size: 10px;">Posición de los controles en la
+                                        presentación</small> </small>
+                            </button>
+                        </h2>
+                        <div id="collapseControls" class="accordion-collapse collapse"
+                            aria-labelledby="custom-direction" data-bs-parent="#custom-slides">
+                            <div class="accordion-body">
+                                <div class="list-group">
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" name="custom-direction" id="top"
+                                            v-model="custom.controlDirection" value="edges"
+                                            @change="customPresentation('controlDirection', custom.controlDirection)">
+                                        <label class="form-check-label" for="top">
+                                            Bordes
+                                        </label>
+                                    </label>
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" name="custom-direction" id="bottom"
+                                            v-model="custom.controlDirection" value="bottom-right"
+                                            @change="customPresentation('controlDirection', custom.controlDirection)">
+                                        <label class="form-check-label" for="bottom">
+                                            Esquina inferior derecha
+                                        </label>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="customOrder">
+                            <button class="accordion-button collapsed text-muted" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#collapseOrder" aria-expanded="false"
+                                aria-controls="collapseOrder">
+                                <i class="bi bi-list-ol text-muted" style="font-size: 25px; margin-right: 10px;"></i>
+                                <small> Orden <br> <small style="font-size: 10px;">Seleciona el orden en que se
+                                        presentan las dispositivas</small> </small>
+                            </button>
+                        </h2>
+                        <div id="collapseOrder" class="accordion-collapse collapse" aria-labelledby="customOrder"
+                            data-bs-parent="#custom-slides">
+                            <div class="accordion-body">
+                                <div class="list-group">
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" name="custom-order"
+                                            id="default-order" v-model="custom.slidesOrder" value="false"
+                                            @change="customPresentation('slidesOrder', custom.slidesOrder)">
+                                        <label class="form-check-label" for="default-order">
+                                            Default
+                                        </label>
+                                    </label>
+                                    <label class="list-group-item" style="border: none;">
+                                        <input class="form-check-input" type="radio" name="custom-order" id="random"
+                                            v-model="custom.slidesOrder" value="true"
+                                            @change="customPresentation('slidesOrder', custom.slidesOrder)">
+                                        <label class="form-check-label" for="random">
+                                            Random
+                                        </label>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <!-- Custom -->
+
+        <!-- Main -->
+        <div class="slides">
+            <section v-for="({title, content, subslides}) in slides">
+                <h1 class="slide-title" style="color: #FFFFFF !important;">{{title}}</h1>
+                <p style="color: #FFFFFF;">{{content}}</p>
+                <section v-for="({title, content}) in subslides">
+                    <h1 class="slide-title" style="color: #FFFFFF !important;">{{title}}</h1>
+                    <p style="color: #FFFFFF;">{{content}}</p>
+                </section>
+            </section>
+        </div>
+        <!-- Main -->
+
+
+    </div>
+
+
+
+    <script src="https://unpkg.com/vue@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2/js/reveal.js"></script>
+    <script src="./assets/js/app.js"></script>
+</body>
+
+</html>
