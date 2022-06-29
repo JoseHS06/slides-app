@@ -288,6 +288,10 @@ const app = createApp({
             nextTick(() => {
                 const alert = new bootstrap.Toast(document.querySelector('#alert'));
                 alert.show();
+
+                Reveal.getSlides().forEach(slide => {
+                    slide.slideBackgroundContentElement.style.cssText = `background-color: ${this.custom.background} !important; display: 'block'`;
+                });
             });
 
 
